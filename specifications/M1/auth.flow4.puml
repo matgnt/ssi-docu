@@ -1,0 +1,58 @@
+@startuml
+!pragma layout smetana
+
+!include diagram.styles.puml
+
+autonumber
+
+box "Consumer (Prover) Entity"
+participant "Resource Owner ('Client' 1)" as C
+participant "Secure Token Service" as STS
+participant "Business Logic" as BL
+participant "Credential Service\n(Wallet)" as CS
+end box
+
+box "Provider (Verifier) Entity"
+participant "Verifier ('Client' 2)" as V
+end box
+
+C -> STS: SI token request (provide <b>context</b> object)
+note over STS
+<b>context</b> object can contain any kind of information.
+E.g. a <b>scope</b>, to be precise, a <b>prover scope</b>
+The <b>context</b> object becomes part of the <b>access token claims</b>
+end note
+STS -> C: Token response w/ access token
+
+C-> V: Request w/ si token and access token\n(DSP protocol flow, e.g. catalog request)
+V-> CS: <b>OID4VP Authorization Request</b>\nw/ access token\n<b>AND verifier scope</b>
+CS -> CS: Select VC/VPs\nbased on <b>verifier scope</b>
+
+CS -> BL: Confirmation?\n
+note over BL
+- List of VC/VPs (selection base on verifier scope).
+- <b>verifier scope</b> (scope or PreEx request object).
+- access token, especially <b>context</b>
+object from the tokens' claims.
+end note
+
+group "automated scope mapping"
+BL -> BL: <b>prover scope equals verifier scope</b> (y/n)
+note over BL, CS
+Basically reduce the list of VCs from the verifier request
+by the list defined via the prover (scope).
+
+(This is limited complexity and thus, this logical
+component could be integrated into the Credential Service).
+end note
+BL -> CS: reduced list
+end
+group "customized business logic"
+BL -> BL: additional customizable logic\nbased on access token <b>context</b> claims
+BL -> CS: reduced list
+end
+
+CS ->V: VP response
+
+V -> C
+@enduml

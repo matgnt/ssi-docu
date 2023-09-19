@@ -1,0 +1,61 @@
+@startuml
+!pragma layout smetana
+
+!include diagram.styles.puml
+
+autonumber
+
+box "Consumer (Prover) Entity"
+participant "Client" as C
+participant "Secure Token Service" as STS
+participant "Credential Service\n(Wallet)" as CS
+end box
+
+box "Provider (Verifier) Entity"
+participant "DSP" as DSP
+participant "Client 2 (Verifier)" as V
+end box
+
+C -> STS: SI token request
+STS -> C: Token response w/ access token
+
+note over C
+SIOPv2:
+can be 1 for n
+or 1 per organizstion ('connection'...)
+end note
+
+opt "Optional: pre-register new local identifiers"
+C -> V: Header: Authorization <SIOPv2> JWT
+end
+
+alt "identity's authorization is ok"
+C -> DSP: catalog request (resource).\nHeader: Authorization <SIOPv2> JWT
+DSP <-> V: VPs for Authorization exist?
+DSP -> C: catalog response
+end
+
+alt "identity's authorization is not enough"
+C -> DSP: catalog request (resource).\nHeader: Authorization <SIOPv2> JWT
+
+return Code: 401\nHeader: <b>WWW-Authenticate: 'OID4VP'</b>\nBody: {"request_uri": "https://provider/requesturi/<ID_1>"}\nor Body with request object\nor Body with {"scope": "XXX"}
+note over C, DSP
+the <b>scope</b> transferred is the vierifier's requested scope.
+
+end note
+
+
+C -> CS: Forward request with a consumer (Prover) given <b>(prover) scope</b>
+
+CS -> CS: Map request to existing credentials\n(use verifier scope)
+CS -> CS: Evaluate mapping list with <b>prover scope</b>\n(might reduce the list)
+
+CS -> C: VCs / VPs
+C -> DSP: Header: Authorization <SIOPv2> JWT\n(including VPs)
+DSP <-> V: VPs for Authorization exist?\n(add new VPs to the wallet)
+DSP -> C: catalog response
+end
+
+
+
+@enduml

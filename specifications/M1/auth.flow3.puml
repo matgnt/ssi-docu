@@ -6,7 +6,7 @@
 autonumber
 
 box "Consumer (Prover) Entity"
-participant "Client 1" as C
+participant "Resource Owner (Client 1)" as C
 participant "Secure Token Service" as STS
 participant "Credential Service" as CS
 end box
@@ -15,8 +15,8 @@ box "Provider (Verifier) Entity"
 participant "Client 2 (Verifier)" as V
 end box
 
-C -> STS: SI token request
-STS -> C: Token response w/ access token
+C -> STS: SI token request (provide: Provider DID)
+STS -> C: Token response w/ access token\n(bound to Provider DID)\n
 
 C-> V: Request w/ si token and access token
 V-> CS: request w/ access token

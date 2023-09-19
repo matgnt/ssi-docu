@@ -1,0 +1,36 @@
+@startuml
+!pragma layout smetana
+
+!include diagram.styles.puml
+
+autonumber
+
+box "Consumer (Prover) Entity"
+participant "Resource Owner\n('Client 1')" as C
+participant "'Secure Token Service'" as STS
+participant "Auth Server" as Auth
+participant "Credential Service\n(Resource Server)" as CS
+end box
+
+box "Provider (Verifier) Entity"
+participant "Client 2 (Verifier)" as V
+end box
+
+C -> STS: SI token request
+STS -> C: Token response w/ <b>authorization grant/code</b>
+
+C-> V: Request w/ si token and <b>authorization grant/code</b>
+
+group
+V -> Auth: authorization grant/code
+note over Auth
+authorization grant
+can only be used ONCE!
+end note
+return access token
+end group
+
+
+V-> CS: request w/ access token
+CS ->V: VP response
+@enduml

@@ -1,0 +1,72 @@
+@startuml
+!pragma layout smetana
+
+!include diagram.styles.puml
+
+autonumber
+
+title "DPoP version"
+
+box "Consumer (Prover) Entity"
+participant "Client" as C
+participant "Secure Token Service" as STS
+participant "Credential Service\n(Wallet)" as CS
+end box
+
+box "Provider (Verifier) Entity"
+participant "DSP" as DSP
+participant "Client 2 (Verifier)" as V
+end box
+
+C -> DSP: request catalog
+return Since no DPoP Header is given: 401 Unauthroized
+note over C, DSP
+HTTP/1.1 401 Unauthorized
+ WWW-Authenticate: DPoP error="use_dpop_nonce", \
+   error_description="Resource server requires nonce in DPoP proof"
+ DPoP-Nonce: eyJ7S_zG.eyJH0-Z.HX4w-7v
+
+https://datatracker.ietf.org/doc/html/rfc9449#section-9
+
+end note
+
+C -> STS: SI token request (DPoP-Nonce)
+STS -> C: Token response w/ access token <b>better DPoP</b>
+
+opt "Optional: pre-register new local identifiers"
+C -> V: Binding between BPN Credential(?) and or did:web and DPoP key
+Note over C,V
+TODO: Use same nonce in both signatures?
+end note
+end
+
+alt "identity's authorization is ok"
+C -> DSP: catalog request (resource).\nHeader: <b>Authorization</b> empty or with MembershipVC\n<b>DPoP</b> DPoP-Token (from STS)
+DSP <-> V: VPs for Authorization exist?
+DSP -> C: catalog response
+end
+
+alt "identity's authorization is not enough"
+C -> DSP: catalog request (resource).\nHeader: Authorization <SIOPv2> JWT
+
+return Code: 401\nHeader: <b>WWW-Authenticate: 'OID4VP'</b>\nBody: {"request_uri": "https://provider/requesturi/<ID_1>"}\nor Body with request object\nor Body with {"scope": "XXX"}
+note over C, DSP
+the <b>scope</b> transferred is the vierifier's requested scope.
+
+end note
+
+
+C -> CS: Forward request with a consumer (Prover) given <b>(prover) scope</b>
+
+CS -> CS: Map request to existing credentials\n(use verifier scope)
+CS -> CS: Evaluate mapping list with <b>prover scope</b>\n(might reduce the list)
+
+CS -> C: VCs / VPs
+C -> DSP: Header: Authorization <SIOPv2> JWT\n(including VPs)
+DSP <-> V: VPs for Authorization exist?\n(add new VPs to the wallet)
+DSP -> C: catalog response
+end
+
+
+
+@enduml
